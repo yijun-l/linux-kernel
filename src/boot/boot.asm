@@ -8,64 +8,135 @@ SETUP_SECTOR_COUNT  equ     2
 global _start
 
 _start:
-    xchg bx, bx		    ; Magic Breakpoint
+    xchg bx, bx		        ; Magic Breakpoint
 
 ;=========================================================================
 ; Clear the screen
 ;-------------------------------------------------------------------------
 
-    mov ah, 0x00	    ; Set Video Mode
-    mov al, 0x03	    ; Text Mode, 80*25
-    int 0x10		    ; IVT 0x10 - Video Services
+    mov ah, 0x00	        ; Set Video Mode
+    mov al, 0x03	        ; Text Mode, 80*25
+    int 0x10		        ; IVT 0x10 - Video Services
 
 ;=========================================================================
-; Read content from Storage Device to memory 
+; initialize register and read HDD
 ;-------------------------------------------------------------------------
 
-    mov si, dap		    ; Disk Address Package (DAP) address
-    mov ah, 0x42	    ; Extended Read Sectors From Drive
-    mov dl, 0x80	    ; drive index (e.g. 1st HDD = 80h)
-    int 0x13		    ; IVT 0v13: Floppy/IO routines
+    mov di, SETUP_ADDR_BASE
+    mov ecx, SETUP_SECTOR_START
+    mov bx, SETUP_SECTOR_COUNT
 
-    jc .read_hd_failure	; CF Set On Error, Clear if No Error
+    call read_hd
 
 ;=========================================================================
-; Print msg when successfully read
+; load OS and Print msg when successfully read
 ;-------------------------------------------------------------------------
 
     mov si, read_hd_success_msg
     call print
 
-    jmp stuck_loop 
+    jmp SETUP_ADDR_BASE
 
 ;=========================================================================
-; Print msg when read failure
+; read_hd - read HDD to RAM
+; Input:
+;       DI - memory address to load from hdd
+;       CX - the sector number read from
+;       BX - number of sectors to be read
+; Output:
+;       none
 ;-------------------------------------------------------------------------
 
-.read_hd_failure
-    mov si, read_hd_failure_msg
-    call print
-    jmp stuck_loop
+read_hd:
+    mov dx, 0x1f2           ; 0x1f2(W): Number of sectors to read/write
+    mov al, bl
+    out dx, al
 
+    inc dx                  ; 0x1f3(W): LBAlo
+    mov al, cl
+    out dx, al
+
+    inc dx                  ; 0x1f4(W): LBAmid
+    mov al, ch
+    out dx, al
+
+    inc dx                  ; 0x1f5(W): LBAhi
+    shr ecx, 16
+    mov al, cl
+    out dx, al
+
+    inc dx                  ; 0x1f6(W): Drive / Head
+    and ch, 0b0000_1111
+    or ch, 0b1110_0000
+    mov al, ch
+    out dx, al
+
+    inc dx                  ; 0x1f7(W): send ATA commands to the device
+    mov al, 0x20
+    out dx, al
+    mov cx, bx
+
+.start_read:                ; Read CX sectors
+    push cx
+    call wait_hd_prepare
+    call read_hd_data
+    pop cx
+    loop .start_read
+
+.done:
+    ret
+
+;=========================================================================
+; Wait HDD is ready to be read
+;-------------------------------------------------------------------------
+
+wait_hd_prepare:
+    mov dx, 0x1f7
+
+.check:
+    in al, dx               ; 0x1f7(R) - read the current HDD status
+    and al, 0b1000_1000     ; Check BSY and DRQ bit
+    cmp al, 0b0000_1000     ; Data is read when BSY not set and DRQ set
+    jnz .check
+
+.done:
+    ret
+
+;=========================================================================
+; Read 1 sector (512 bytes)
+;-------------------------------------------------------------------------
+
+read_hd_data:
+    mov cx, 256             ; 512 bytes as total, 2 bytes per time
+    mov dx, 0x1f0
+
+.read:
+    in ax, dx               ; 0x1f0(R) - Read data bytes.
+    mov [edi], ax
+    add edi, 2
+    loop .read
+
+.done:
+    ret
 
 ;=========================================================================
 ; print - print string to display
 ; Input:
-;	SI - string address
+;       SI - string address
 ; Output:
-;	none
+;       none
 ;-------------------------------------------------------------------------
 
 print:
-    mov ah, 0x0e	    ; INT 0x10 mode - Teletype output
-    mov bh, 0		    ; BH = Page Number
-    mov bl, 1		    ; BL = Color
+    mov ah, 0x0e            ; INT 0x10 mode - Teletype output
+    mov bh, 0               ; BH = Page Number
+    mov bl, 1               ; BL = Color
 
 .loop:
-    mov al, [si]	    ; AL = Character
+    mov al, [si]            ; AL = Character
     cmp al, 0
     jz .done
-    int 0x10		    ; IVT 0x10 - Video Services
+    int 0x10                ; IVT 0x10 - Video Services
 
     inc si
     jmp .loop
@@ -74,47 +145,11 @@ print:
     ret
 
 ;=========================================================================
-; Halt the CPU
-;-------------------------------------------------------------------------
-
-stuck_loop:
-    hlt
-    jmp stuck_loop
-
-;=========================================================================
-; Disk Address Packet (DAP) format
-;
-;       offset  size    description
-;		-----	-----	-----
-;       0       1 byte  size of DAP (set this to 10h)
-;       1       1 byte  unused, should be zero
-;       2-3     2 byte  number of sectors to be read
-;       4-7     4 byte  segment:offset pointer to the memory buffer 
-;			to which sectors will be transferred
-;       8-F     8 byte  absolute number of the start of the sectors 
-;			to be read using logical block addressing
-;-------------------------------------------------------------------------
-
-dap:
-    db 0x10
-    db 0
-    dw SETUP_SECTOR_COUNT
-    dd SETUP_ADDR_BASE
-    dq SETUP_SECTOR_START
-    
-;=========================================================================
 ; String definition
 ;-------------------------------------------------------------------------
-
-read_hd_failure_msg:
-    db "read disk failed", 0xa, 0xd, 0
 
 read_hd_success_msg:
     db "successfully read disk", 0xa, 0xd, 0
 
-;=========================================================================
-; padding
-;-------------------------------------------------------------------------
-
-times 510 - ($ - $$) db 0
-db 0x55, 0xaa		    ; Boot Sector Signature
+times 510 - ($ - $$) db 0   ; padding
+db 0x55, 0xaa               ; Boot Sector Signature
