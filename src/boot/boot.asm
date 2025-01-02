@@ -8,15 +8,15 @@ SETUP_SECTOR_COUNT  equ     2
 global _start
 
 _start:
-    xchg bx, bx		        ; Magic Breakpoint
+    xchg bx, bx             ; Magic Breakpoint
 
 ;=========================================================================
 ; Clear the screen
 ;-------------------------------------------------------------------------
 
-    mov ah, 0x00	        ; Set Video Mode
-    mov al, 0x03	        ; Text Mode, 80*25
-    int 0x10		        ; IVT 0x10 - Video Services
+    mov ah, 0x00            ; Set Video Mode
+    mov al, 0x03            ; Text Mode, 80*25
+    int 0x10                ; IVT 0x10 - Video Services
 
 ;=========================================================================
 ; initialize register and read HDD

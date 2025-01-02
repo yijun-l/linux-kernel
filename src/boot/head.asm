@@ -8,7 +8,7 @@ _start:
 
     mov si, msg
     call print
-    xchg bx, bx		        ; Magic Breakpoint
+    xchg bx, bx             ; Magic Breakpoint
     sti                     ; set IF to 1 in case Bochs stuck 
     jmp stuck_loop
 
