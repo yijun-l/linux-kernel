@@ -34,6 +34,7 @@ _start:
 
     mov si, read_hd_success_msg
     call print
+    xchg bx, bx             ; Magic Breakpoint
 
     jmp SETUP_ADDR_BASE
 

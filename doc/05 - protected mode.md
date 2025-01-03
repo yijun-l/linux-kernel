@@ -88,25 +88,25 @@ SEG_LIMIT   equ     0xfffff
 
 ; Entry 0 - NULL Segment Descriptor
 gdt_base:
-        dd 0, 0
+    dd 0, 0
 
 ; Entry 1 - Code Segment Descriptor
 gdt_code:
-        dw SEG_LIMIT & 0xffff
-        dw SEG_BASE & 0xffff
-        db (SEG_BASE >> 16) & 0xff
-        db 0b1_00_1_1_0_0_0
-        db ((SEG_LIMIT >> 16) & 0xf) | 0b0_1_0_0_0000
-        db SEG_BASE >> 24 & 0xff
+    dw SEG_LIMIT & 0xffff
+    dw SEG_BASE & 0xffff
+    db (SEG_BASE >> 16) & 0xff
+    db 0b1_00_1_1_0_0_0
+    db ((SEG_LIMIT >> 16) & 0xf) | 0b0_1_0_0_0000
+    db SEG_BASE >> 24 & 0xff
 
 ; Entry 2 - Data Segment Descriptor
 gdt_data:
-        dw SEG_LIMIT & 0xffff
-        dw SEG_BASE & 0xffff
-        db (SEG_BASE >> 16) & 0xff
-        db 0b1_00_1_0_0_1_0
-        db ((SEG_LIMIT >> 16) & 0xf) | 0b1_1_0_0_0000
-        db SEG_BASE >> 24 & 0xff
+    dw SEG_LIMIT & 0xffff
+    dw SEG_BASE & 0xffff
+    db (SEG_BASE >> 16) & 0xff
+    db 0b1_00_1_0_0_1_0
+    db ((SEG_LIMIT >> 16) & 0xf) | 0b1_1_0_0_0000
+    db SEG_BASE >> 24 & 0xff
 
 ; GDTR Register content
 gdtr_val:
@@ -127,3 +127,61 @@ Addressing in protected mode involves two steps, often expressed as `Segment Sel
 2. The CPU retrieves the "Base" value from the segment descriptor and adds the "offset" to calculate the linear address. If paging is disabled, this linear address becomes the physical memory address:
 
     `Physical Address = Base + Offset`
+
+## Enter Protected Mode from Real Mode
+
+To transition from Real Mode to Protected Mode, the following steps must be completed:
+
+- **Disable Interrupts**: This includes both Interrupt Requests (INTR) and Non-Maskable Interrupts (NMI), as recommended by Intel.
+- **Enable the A20 Line**: The A20 line must be activated to allow access to memory beyond the 1 MB boundary.
+- **Load the Global Descriptor Table (GDT)**: The GDT should include segment descriptors for code, data, and the stack.
+- **Set the Protection Enable (PE) Bit in CR0**: This bit determines whether the CPU operates in Real Mode or Protected Mode.
+
+### Interrupt Request (INTR) and Non-Maskable Interrupt (NMI)
+
+Interrupts like INTR and NMI are triggered by hardware.
+
+<img src="img/5-8.png" alt="intr_nmi" height="200">
+
+- **INTR**: This can be enabled or disabled by software and is used for regular interrupt handling.
+- **NMI**: Reserved for critical system events, NMIs cannot be masked or disabled through normal CPU mechanisms.
+
+The CPU has dedicated pins for both INTR and NMI. Intel advises disabling NMIs through hardware mechanisms (such as using specific BIOS settings or hardware control registers) before switching to Protected Mode to ensure no unexpected interrupts occur during the transition.
+
+```nasm
+; disable interrupts - set IF flag to 0
+
+    cli
+```
+
+### A20 Line
+
+The A20 Address Line represents the 21st bit of memory addressing.
+
+In Real Mode, the CPU uses 20-bit addresses, limiting memory access to 1 MB.
+
+By default, the A20 line is disabled to emulate the 8086 memory wraparound behavior (where addresses above 1 MB wrap back to 0).
+
+To access memory beyond 1 MB in Protected Mode, the A20 line must be enabled. This can typically be done using the "Fast A20" option, which is supported by most modern systems.
+
+```nasm
+; open A20 by Fast A20 Gate
+
+    in    al,  0x92
+    or    al,  2
+    out   0x92, al
+```
+
+### Control Register 0 (CR0)
+
+The CR0 register controls the CPU's operating modes and system behavior. Each bit in CR0 serves a specific purpose.
+
+PE bit is the lowest bit in CR0. Setting this bit switches the CPU from Real Mode to Protected Mode, enabling features like virtual memory and access control.
+
+```nasm
+; set PE (Protection Enable) bit in CR0 (Control Register 0)
+
+    mov   eax, cr0
+    or    eax , 1
+    mov   cr0, eax
+```
