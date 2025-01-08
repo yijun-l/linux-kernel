@@ -10,8 +10,18 @@ CFLAGS += -fno-pic					# generate non position independent code (pic) which is t
 CFLAGS += -fno-stack-protector		# disable the stack protector feature
 CFLAGS := $(strip ${CFLAGS})
 DEBUG := -g
+
 LD_FLAGS := -m i386pe				# specify produce an ELF binary file for Intel x86 architecture (32-bit).
+LD_FLAGS += -Ttext=0x900
+
 OC_FLAGS := -O binary				# specify the output is raw binary data (flat binary) without metadata info in object file
+
+# QEMU Options
+QEMU_FLAGS := -m 32M				# set guest startup RAM size
+QEMU_FLAGS += -hda ${HD_IMG_NAME}	# specify hard disk 0 image
+
+QEMU_DEBUG_FLAGS := -S				# do not start CPU at startup (you must type 'c' in the monitor)
+QEMU_DEBUG_FLAGS += -gdb tcp::6666	# accept a gdb connection on device
 
 
 all: ${BUILD}/boot/boot.o ${BUILD}/boot/head.o ${BUILD}/kernel.bin
@@ -42,3 +52,9 @@ clean:
 
 bochs: all
 	bochsdbg -q -f bochsrc
+
+qemu: all
+	qemu-system-i386 ${QEMU_FLAGS}
+
+dqemu: all
+	qemu-system-i386 ${QEMU_FLAGS} ${QEMU_DEBUG_FLAGS}
