@@ -75,3 +75,63 @@ Here are some essential GDB commands to get started:
 - **clear**: Clears all breakpoints.
 
 - **continue**: Continues normal execution.
+
+## Run GDB server in Qemu
+
+Previously, we used Bochs to run and debug NASM programs. As we transition to C programming, QEMU becomes a more suitable choice for debugging due to its flexibility and built-in GDB server support.
+
+### Setting Up Qemu
+
+- Obtain Qemu from the official site: https://qemu.weilnetz.de/w64/
+
+- Add Qemu installation directory to environment variables
+
+- Set parameters in Makefile for debugging
+
+    ```console
+    # QEMU Options
+    QEMU_FLAGS := -m 32M				# set guest startup RAM size
+    QEMU_FLAGS += -hda ${HD_IMG_NAME}	# specify hard disk 0 image
+
+    QEMU_DEBUG_FLAGS := -S				# do not start CPU at startup (you must type 'c' in the monitor)
+    QEMU_DEBUG_FLAGS += -gdb tcp::6666	# accept a gdb connection on device
+    ```
+
+### Debugging in VS Code
+
+- Install "Native Debug" from VS Code Extensions
+
+- Configure remote GDB
+
+  Navigate to the "Run and Debug" view and create a `launch.json` file by selecting "GDB: Connect to gdbserver"
+    ```console
+    # .vscode/launch.json
+    {
+        // Use IntelliSense to learn about possible attributes.
+        // Hover to view descriptions of existing attributes.
+        // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "type": "gdb",
+                "request": "attach",
+                "name": "Attach to QEMU GDB Server",
+                "executable": "./build/kernel.pe",
+                "target": "localhost:6666",
+                "remote": true,
+                "cwd": "${workspaceRoot}",
+                "valuesFormatting": "parseText"
+            }
+        ]
+    }
+    ```
+- Disable OSABI detection
+
+    ```console
+    # %USERPROFILE%\.gdbinit
+    set osabi none
+    ```
+
+- Set breakpoints and debug
+
+    <img src="img/7-1.png" alt="gcc" height="350">
