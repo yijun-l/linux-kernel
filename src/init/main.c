@@ -1,5 +1,6 @@
+#include "../include/linux/tty.h"
+
 void kernel_entry(){
-    int i = 0;
-    int j = i + 10;
+    console_init();
     while(1);
 }

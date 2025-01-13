@@ -11,6 +11,9 @@ CFLAGS += -fno-stack-protector		# disable the stack protector feature
 CFLAGS := $(strip ${CFLAGS})
 DEBUG := -g
 
+# NASM options
+ASM_FLAGS := -f win32			# specify the output file format is ELF32 (i386) object files
+
 LD_FLAGS := -m i386pe				# specify produce an ELF binary file for Intel x86 architecture (32-bit).
 LD_FLAGS += -Ttext=0x900
 
@@ -39,8 +42,17 @@ ${BUILD}/kernel.bin: ${BUILD}/kernel.pe
 	objcopy ${OC_FLAGS} $< $@
 
 # compile C and ASM code to object file, and link them to PE file
-${BUILD}/kernel.pe: ${BUILD}/init/main.o
+${BUILD}/kernel.pe: ${BUILD}/init/main.o ${BUILD}/kernel/asm/io.o ${BUILD}/kernel/console.o
 	ld ${LD_FLAGS} $^ -o $@
+
+${BUILD}/kernel/asm/%.o: ${SOURCE}/kernel/asm/%.asm
+	$(shell mkdir -p ${BUILD}/kernel)
+	$(shell mkdir -p ${BUILD}/kernel/asm)
+	nasm ${ASM_FLAGS} ${DEBUG} $< -o $@
+
+${BUILD}/kernel/%.o: ${SOURCE}/kernel/%.c
+	$(shell mkdir -p ${BUILD}/kernel)
+	gcc ${CFLAGS} ${DEBUG} -c $< -o $@
 
 ${BUILD}/init/main.o: ${SOURCE}/init/main.c
 	$(shell mkdir -p ${BUILD}/init)

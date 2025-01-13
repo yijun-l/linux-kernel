@@ -1,7 +1,8 @@
 [BITS 32]
+[SECTION .text]
 
-global inb
-inb:
+global _inb
+_inb:
     push ebp
     mov ebp, esp
 
@@ -13,8 +14,8 @@ inb:
     leave
     ret
 
-global outb
-outb:
+global _outb
+_outb:
     push ebp
     mov ebp, esp
 
