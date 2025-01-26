@@ -8,6 +8,7 @@ CFLAGS += -fno-builtin				# disable GCC built-in functions (for performance purp
 CFLAGS += -nostdinc					# do not search the standard system directories for header files
 CFLAGS += -fno-pic					# generate non position independent code (pic) which is the code can be loaded and executed at any memory address, which is essential for shared libraries
 CFLAGS += -fno-stack-protector		# disable the stack protector feature
+CFLAGS += -mno-sse					# disable SSE
 CFLAGS := $(strip ${CFLAGS})
 DEBUG := -g
 
@@ -42,7 +43,7 @@ ${BUILD}/kernel.bin: ${BUILD}/kernel.pe
 	objcopy ${OC_FLAGS} $< $@
 
 # compile C and ASM code to object file, and link them to PE file
-${BUILD}/kernel.pe: ${BUILD}/init/main.o ${BUILD}/kernel/asm/io.o ${BUILD}/kernel/console.o
+${BUILD}/kernel.pe: ${BUILD}/init/main.o ${BUILD}/kernel/asm/io.o ${BUILD}/kernel/console.o ${BUILD}/kernel/vsprintf.o
 	ld ${LD_FLAGS} $^ -o $@
 
 ${BUILD}/kernel/asm/%.o: ${SOURCE}/kernel/asm/%.asm

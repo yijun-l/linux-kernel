@@ -2,5 +2,6 @@
 #define _LINUX_TTY_H
 
 void console_init();
+void console_write();
 
 #endif
