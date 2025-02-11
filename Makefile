@@ -43,7 +43,7 @@ ${BUILD}/kernel.bin: ${BUILD}/kernel.pe
 	objcopy ${OC_FLAGS} $< $@
 
 # compile C and ASM code to object file, and link them to PE file
-${BUILD}/kernel.pe: ${BUILD}/init/main.o ${BUILD}/kernel/asm/io.o ${BUILD}/kernel/console.o ${BUILD}/kernel/vsprintf.o
+${BUILD}/kernel.pe: ${BUILD}/init/main.o ${BUILD}/init/x64_cpu_check.o ${BUILD}/kernel/asm/io.o ${BUILD}/kernel/console.o ${BUILD}/kernel/vsprintf.o 
 	ld ${LD_FLAGS} $^ -o $@
 
 ${BUILD}/kernel/asm/%.o: ${SOURCE}/kernel/asm/%.asm
@@ -54,6 +54,10 @@ ${BUILD}/kernel/asm/%.o: ${SOURCE}/kernel/asm/%.asm
 ${BUILD}/kernel/%.o: ${SOURCE}/kernel/%.c
 	$(shell mkdir -p ${BUILD}/kernel)
 	gcc ${CFLAGS} ${DEBUG} -c $< -o $@
+
+${BUILD}/init/x64_cpu_check.o: ${SOURCE}/init/x64_cpu_check.asm
+	$(shell mkdir -p ${BUILD}/init)
+	nasm ${ASM_FLAGS} ${DEBUG} $< -o $@
 
 ${BUILD}/init/main.o: ${SOURCE}/init/main.c
 	$(shell mkdir -p ${BUILD}/init)

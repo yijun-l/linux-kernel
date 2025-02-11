@@ -36,10 +36,41 @@ static void itos(int num, char* buf)
     }
 }
 
+/* Convert an integer to a hexadecimal string */
+static void hex_itos(unsigned int num, char* buf) {
+    int i = 0;
+
+    /* Special case for zero */
+    if (num == 0) {
+        buf[i++] = '0';
+        buf[i] = '\0';
+        return;
+    }
+
+    /* Convert each digit in reverse order */
+    while (num > 0) {
+        int digit = num % 16;
+        buf[i++] = (digit < 10) ? (digit + '0') : (digit - 10 + 'A');
+        num /= 16;
+    }
+
+    /* Null-terminate the string */
+    buf[i] = '\0';
+
+    /* Reverse the string to get the correct order */
+    int len = i;
+    for (int j = 0; j < len / 2; j++) {
+        char tmp = buf[j];
+        buf[j] = buf[len - j - 1];
+        buf[len - j - 1] = tmp;
+    }
+}
+
 static int vsprintf(char *buf, const char *fmt, va_list args)
 {
     char* str;
-    char *tmp;
+    char format_buf[128] = " ";
+    char *tmp = format_buf;
 
     for(str=buf ; *fmt ; ++fmt){
         if(*fmt != '%'){
@@ -59,6 +90,12 @@ static int vsprintf(char *buf, const char *fmt, va_list args)
                 break;
             case 's':
                 tmp = va_arg(args, char*);
+                while(*tmp){
+                    *str++ = *tmp++;
+                }
+                break;
+            case 'x':
+                hex_itos(va_arg(args, int), tmp);
                 while(*tmp){
                     *str++ = *tmp++;
                 }
