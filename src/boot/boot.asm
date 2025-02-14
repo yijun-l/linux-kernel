@@ -8,7 +8,7 @@ SETUP_SECTOR_COUNT  equ     2
 global _start
 
 _start:
-    xchg bx, bx             ; Magic Breakpoint
+    ; xchg bx, bx             ; Magic Breakpoint
 
 ;=========================================================================
 ; Clear the screen
@@ -34,7 +34,7 @@ _start:
 
     mov si, read_hd_success_msg
     call print
-    xchg bx, bx             ; Magic Breakpoint
+    ; xchg bx, bx             ; Magic Breakpoint
 
     jmp SETUP_ADDR_BASE
 

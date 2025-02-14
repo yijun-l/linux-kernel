@@ -18,7 +18,7 @@ _start:
 
     mov si, jump_to_head_msg
     call print
-    xchg bx, bx         ; Magic Breakpoint
+    ; xchg bx, bx         ; Magic Breakpoint
 
 ;=========================================================================
 ; Prepare to enter protected mode
@@ -127,7 +127,7 @@ protected_mode:
     mov gs, ax
 
     mov esp, 0x9fbff    ; set kernel stack, 0x7e00 - 0x9fbff is free to use
-    xchg bx, bx         ; Magic Breakpoint
+    ; xchg bx, bx         ; Magic Breakpoint
     jmp KERNEL_ADDR_BASE
 
 ;=========================================================================
